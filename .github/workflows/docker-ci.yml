@@ -5,6 +5,7 @@ on:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+  workflow_dispatch:  # Enables manual trigger button in GitHub UI
 
 # Explicit permissions required to write packages to GHCR using GITHUB_TOKEN
 permissions:
@@ -13,7 +14,7 @@ permissions:
 
 jobs:
   build-test-push:
-    runs-on: blacksmith-8vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
@@ -40,8 +41,8 @@ jobs:
       # -------------------------------------------------------------------
       # 2. BUILD & PUSH PHASE
       # -------------------------------------------------------------------
-      - name: Setup Blacksmith Builder
-        uses: useblacksmith/setup-docker-builder@v1
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       - name: Log in to GitHub Container Registry (GHCR)
         if: github.event_name != 'pull_request'
@@ -61,7 +62,7 @@ jobs:
             type=sha,format=short
 
       - name: Build and Push Docker Image
-        uses: useblacksmith/build-push-action@v2
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: ./Dockerfile
@@ -69,3 +70,5 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           # Enable GitHub Actions caching for faster rebuilds
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
